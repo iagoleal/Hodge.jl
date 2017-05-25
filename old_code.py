@@ -61,6 +61,27 @@ def a_d1(v):
 			x[i,j] = sum(v[i][j][k] for k in range(0,n))
 	return 3*x 
 
+
+def cg(f, b, eps=1e-10):
+	# f MUST be a function
+	x = np.zeros(b.shape)
+	r = b
+	p = b
+	while (inner(r,r) > eps):
+		print(inner(r,r))
+		y = f(p)
+		norm_old = inner(r, r)
+		a = norm_old / inner(p, y)
+		x = x + a*p
+		
+		r = r - a*y
+
+		beta = inner(r, r) / norm_old
+
+		p = r + beta*p
+	return x
+
+
 def skew(T):
 	X = np.empty((n,n,n))
 	for i in range(0,n):
@@ -133,3 +154,42 @@ for i,j in edges:
 #print(inner(v,ad_0(x, edges)) - inner(d_0(v, edges), x))
 
 #print(inner(x, ad_1(T, faces)) - inner(d_1(x,faces), T))
+
+
+
+def example_rotzero():
+	n = 6
+	edges = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,0), (0,2), (4,0)]
+	faces = find_triangles(n, edges)
+
+	x = np.zeros((n,n))
+	x[0,1] = 1
+	x[1,2] = 1
+	x[2,3] = 1
+	x[3,4] = 1
+	x[4,5] = 1
+	x[5,0] = 1
+	x[0,2] = 2
+	x[4,0] = 2
+	x = (x - x.T)
+
+	return x, edges, faces
+
+def example_harmonic():
+	n = 6
+	edges = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,0), (0,2), (4,0)]
+	faces = find_triangles(n, edges)
+
+	x = np.zeros((n,n))
+	x[0,1] = 1
+	x[0,2] = 2
+	x[0,4] =-2
+	x[0,5] =-1
+	x[1,2] = 1
+	x[2,3] = 3
+	x[3,4] = 3
+	x[4,5] = 1
+
+	x = (x - x.T)
+
+	return x, edges, faces

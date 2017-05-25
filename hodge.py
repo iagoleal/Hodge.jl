@@ -15,8 +15,8 @@ def ad_0(v, edges):
 
 	for edge in edges:
 		for i,j in permutations(edge):
-			x[i] += -1*v[i,j]
-	return x
+			x[i] += v[i,j]
+	return -2*x
 
 
 def d_1(v, faces):
@@ -32,8 +32,8 @@ def ad_1(v, faces):
 	x = np.zeros([n]*2)
 	for face in faces:
 		for i,j,k in permutations(face):
-			x[i,j] += 311*v[i,j,k]
-	return x
+			x[i,j] += v[i,j,k]
+	return 3*x
 
 
 def inner(v,w):
@@ -47,23 +47,38 @@ def laplace1(x, edges, faces):
 
 
 
-def cg(f, b, eps=1e-10):
-	# f MUST be a function
+def  crls(f,b,eps=1e-16):
 	x = np.zeros(b.shape)
 	r = b
-	p = b
-	while (inner(r,r) > eps):
-		print(inner(r,r))
+	s = f(r)
+	p = s
+	norm = inner(s,s)
+	normx_old = 500
+	while abs(inner(x,x) - normx_old) > eps:
+		normx_old = inner(x,x)
 		y = f(p)
-		norm_old = inner(r, r)
-		a = norm_old / inner(p, y)
-		x = x + a*p
-		
-		r = r - a*y
+		alpha = norm / inner( f(y), f(y) )
+		x = x + alpha*p
+		r = r - alpha*y
 
-		beta = inner(r, r) / norm_old
+		s = f(r)
+		beta = inner(f(s), f(s)) / norm
+		p = s + beta*p
+	return x
 
-		p = r + beta*p
+
+
+def steep(f,b, eps=1e-10):
+	x = np.zeros(b.shape)
+	r = b
+	s = f(r)
+
+	while inner(s,s) > eps:
+		print(inner(s,s))
+		alpha = inner(s,s) / inner(f(s), f(s))
+		x = x + alpha*s
+		r = r - alpha*f(s)
+		s = f(r)
 	return x
 
 
@@ -75,7 +90,7 @@ def hodge(x, edges, faces):
 	def laplace(x):
 		return laplace1(x, edges, faces)
 
-	u = cg(laplace, x)	
+	u = steep(laplace, x)	
 
 
 	
@@ -123,33 +138,23 @@ def ngrid(n):
 	return edges
 
 
-#Harmonic example
 
-n = 6
-edges = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,0), (0,2), (4,0)]
-faces = find_triangles(n, edges)
+def example_grid1(m):
+	n = m*m
+	edges = ngrid(m)
+	faces = find_triangles(n, edges)
 
+	v = np.random.rand(n)*10.0
 
-print(edges)
-print(faces)
-
-
-x = np.zeros((6,6))
-x[0,1] = 1
-x[1,2] = 1
-x[2,3] = 1
-x[3,4] = 1
-x[4,5] = 1
-x[5,0] = 1
-x[0,2] = 2
-x[4,0] = 2
-x = (x - x.T)
-
-print(x,'\n\n')
+	x = np.zeros((n,n))
+	x = d_0(v, edges)
+	return x, edges, faces
 
 
-#print(laplace1(x, edges, faces))
 
+
+x, edges, faces = example_grid1(6)
+print(x)
 
 
 
@@ -157,9 +162,14 @@ print(x,'\n\n')
 
 a = hodge(x, edges, faces)
 
-#print('Gradiente:')
-#print(a[0])
-#print("Rotacional:")
-#print(a[1])
-#print("Harmonica:")
-#print(a[2])
+print('Gradiente:')
+print(a[0])
+print("Rotacional:")
+print(a[1])
+print("Harmonica:")
+print(a[2])
+
+
+
+print('\n\n Revisao:')
+print(d_0(a[0], edges) + ad_1(a[1], faces) + a[2] - x)
