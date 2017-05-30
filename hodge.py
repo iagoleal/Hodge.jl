@@ -1,6 +1,5 @@
 import numpy as np
 from itertools import permutations
-from scipy.sparse.linalg import lsmr
 
 def d_0(v, edges):
 	x = np.zeros([v.shape[-1]]*2)
@@ -9,6 +8,8 @@ def d_0(v, edges):
 			x[i,j] = v[j] - v[i]
 	return x
 
+#Formula for adjoint 
+# (d_0^* X)[i] = -2\sum_j X[i][j]
 def ad_0(v, edges):
 	n = v.shape[-1]
 	x = np.zeros([n])
@@ -35,68 +36,69 @@ def ad_1(v, faces):
 			x[i,j] += v[i,j,k]
 	return 3*x
 
-
+#Canonical inner product
 def inner(v,w):
 	assert(v.ndim == w.ndim)
 
 	return np.tensordot(v,w, v.ndim)
 
+#Laplace operator for 1-forms. Receives the 1 form, the edges and the faces
 def laplace1(x, edges, faces):
 
 	return d_0(ad_0(x, edges), edges) + ad_1(d_1(x, faces), faces)
 
-
-
-def  crls(f,b,eps=1e-16):
+# Symmetric Conjugate gradient for least squares
+# Applies cg to A^2 = A b (least squares on the self-adjoint case)
+def scgls(f, b, eps=1e-10):
+	# f MUST be a function
 	x = np.zeros(b.shape)
-	r = b
-	s = f(r)
-	p = s
-	norm = inner(s,s)
-	normx_old = 500
-	while abs(inner(x,x) - normx_old) > eps:
-		normx_old = inner(x,x)
-		y = f(p)
-		alpha = norm / inner( f(y), f(y) )
-		x = x + alpha*p
-		r = r - alpha*y
+	r = f(b)
+	p = f(b)
+	#i = 1
+	while (inner(r,r) > eps):
+		#print(i, inner(r,r))
+		#i+= 1
+		#Applies twice for least squares
+		y = f(f(p))
+		norm_old = inner(r, r)
+		a = norm_old / inner(p, y)
+		x = x + a*p
+		
+		r = r - a*y
 
-		s = f(r)
-		beta = inner(f(s), f(s)) / norm
-		p = s + beta*p
+		beta = inner(r, r) / norm_old
+
+		p = r + beta*p
 	return x
 
 
-
-def steep(f,b, eps=1e-10):
-	x = np.zeros(b.shape)
-	r = b
-	s = f(r)
-
-	while inner(s,s) > eps:
-		print(inner(s,s))
-		alpha = inner(s,s) / inner(f(s), f(s))
-		x = x + alpha*s
-		r = r - alpha*f(s)
-		s = f(r)
-	return x
-
-
+#Discrete Hodge decomposition
+#How it works:
+#Receives an 1-form x and the edges and faces of the graph as input (necessary for the derivatives)
+#returns 
+#a 0-form
+#b 1-form
+#c 2-form
+#where x = d(a) + d*(b) + c
+#and laplace(c) = 0
 def hodge(x, edges, faces):
-	# Returns the hodge decompositon of x
-	#1st = grad part
-	#2nd = curl part
-	#3rd = harmonic part
+
+	# Just an alias for calling the graph
 	def laplace(x):
 		return laplace1(x, edges, faces)
 
-	u = steep(laplace, x)	
+
+
+	#Uses symmetric conjugate gradient for least square problem to solve laplace(z) = x
+	#The idea is to write x = laplace(z) + c = d(  d*(a) ) + d*( d(b)  ) + c
+	#Which gives the unique solution to the problem
+	u = scgls(laplace, x)	
 
 
 	
 	return ad_0(u, edges), d_1(u, faces), x - laplace(u)
 
-# (d_0^* X)[i] = -2\sum_j X[i][j]
+
 
 
 
@@ -152,12 +154,31 @@ def example_grid1(m):
 
 
 
+def example_harmonic():
+	n = 6
+	edges = [(0,1), (1,2), (2,3), (3,4), (4,5), (5,0), (0,2), (4,0)]
+	faces = find_triangles(n, edges)
 
-x, edges, faces = example_grid1(6)
+	x = np.zeros((n,n))
+	x[0,1] = 1
+	x[0,2] = 2
+	x[0,4] =-2
+	x[0,5] =-1
+	x[1,2] = 1
+	x[2,3] = 3
+	x[3,4] = 3
+	x[4,5] = 1
+
+	x = (x - x.T)
+
+	return x, edges, faces
+
+
+
+
+
+x, edges, faces = example_grid1(20)
 print(x)
-
-
-
 
 
 a = hodge(x, edges, faces)
@@ -168,8 +189,8 @@ print("Rotacional:")
 print(a[1])
 print("Harmonica:")
 print(a[2])
-
-
+print("Teste se e mesmo Harmonica:")
+print(laplace1(a[2], edges, faces))
 
 print('\n\n Revisao:')
 print(d_0(a[0], edges) + ad_1(a[1], faces) + a[2] - x)

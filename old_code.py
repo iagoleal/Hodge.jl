@@ -82,6 +82,59 @@ def cg(f, b, eps=1e-10):
 	return x
 
 
+def  crls(f,b,eps=1e-16):
+	x = np.zeros(b.shape)
+	r = b
+	s = f(r)
+	p = s
+	norm = inner(s,s)
+	normx_old = 500
+	while abs(inner(x,x) - normx_old) > eps:
+		normx_old = inner(x,x)
+		y = f(p)
+		alpha = norm / inner( f(y), f(y) )
+		x = x + alpha*p
+		r = r - alpha*y
+
+		s = f(r)
+		beta = inner(f(s), f(s)) / norm
+		p = s + beta*p
+	return x
+
+def cg(f, b, eps=1e-10):
+	# f MUST be a function
+	x = np.zeros(b.shape)
+	r = b
+	p = b
+	while (inner(r,r) > eps):
+		print(inner(r,r))
+		y = f(p)
+		norm_old = inner(r, r)
+		a = norm_old / inner(p, y)
+		x = x + a*p
+		
+		r = r - a*y
+
+		beta = inner(r, r) / norm_old
+
+		p = r + beta*p
+	return x
+
+
+
+def steep(f,b, eps=1e-10):
+	x = np.zeros(b.shape)
+	r = b
+	s = f(r)
+
+	while inner(s,s) > eps:
+		print(inner(s,s))
+		alpha = inner(s,s) / inner(f(s), f(s))
+		x = x + alpha*s
+		r = r - alpha*f(s)
+		s = f(r)
+	return x
+
 def skew(T):
 	X = np.empty((n,n,n))
 	for i in range(0,n):
