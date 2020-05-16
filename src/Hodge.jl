@@ -3,8 +3,8 @@ module Hodge
 # Data structure for manipulation of simplicial complexes
 include("SimplexTrees.jl")
 
-# Data strucute for manipulation of sparse tensors
-include("SparseTensors.jl")
+# Iterative method for solving linear equations
+include("ConjugateGradient.jl")
 
 # Topological / Geometrical structures
 include("SimplicialComplexes.jl")
