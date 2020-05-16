@@ -98,7 +98,6 @@ function child_from_label(node::SimplexTree, val::Integer)
     end
 end
 
-
 """
     getsimplices(st, k)
 
@@ -176,7 +175,7 @@ function insert_ordered!(complex::SimplexTree, simplex)
         if !haschild(complex, vertex)
             push!(complex.children, STNode(vertex, complex))
         end
-        insert_ordered!(child_from_label(complex,vertex), simplex[index+1:end])
+        insert_ordered!(child_from_label(complex,vertex), Iterators.drop(simplex,index))
     end
     return complex
 end
