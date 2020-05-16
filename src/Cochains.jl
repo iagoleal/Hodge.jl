@@ -1,21 +1,28 @@
-import .SparseTensors
-import Combinatorics: levicivita
+import Combinatorics: levicivita, permutations
+using ComputedFieldTypes
 
-using Base: +, *, -, zero
+using Base: +, *, -, zero, iszero
 using Base: size, similar, getindex, setindex!
+using Base: show
+import Base.Iterators: take, drop
 
 # Helper function to calculate permutation sign
-permsign = levicivita ∘ sortperm
+signperm = levicivita ∘ sortperm
 
-
+# Interator yielding the (k-1)-faces of k-simplex
 @inline faces(s) = ((s[j] for j in eachindex(s) if j != i) for i in eachindex(s))
+@inline simplex_dim(l) = length(l) - 1
+
+@inline function assert_basespaces(f,g)
+    @assert(basespace(f) == basespace(g), "The Cochains are defined over different simplicial complexes")
+end
 
 """
-    Cochain{R, K, n}
+    Cochain{R, n}
 
-Represent the group ``C^n(K; R)``
-of cochains over a simplicial complex ``K``
-of dimension `n` and over the ring `R`.
+Represent the `n`-th group ``C^n(K; R)``
+of cochains over the ring `R`
+whose basespace is the simplicial complex ``K``.
 
 The elements of this type may be seem as
 functions from the n-simplices of `K` to `R`
@@ -23,79 +30,163 @@ or as skew-symmetric n-tensors over the vertices of `K`.
 This second perspective follows the ideas from the paper:
 - Jiang, X., Lim, L., Yao, Y. et al. Statistical ranking and combinatorial Hodge theory. Math. Program. 127, 203–244 (2011). https://doi.org/10.1007/s10107-010-0419-x
 """
-struct Cochain{R, K, n} <: AbstractArray{R,n} where {R <: Number}
-    values :: SparseTensor{R,n}
+struct Cochain{R<:Number, n}
+    basespace :: SimplicialComplex
+    values    :: Dict{Tuple{Vararg{Int}}, R}
 end
+
 
 ## Constructing Cochains
 
 # Zero cochain over K
-function Cochain(::Type{R}, K::SimplicialComplex, n::Int) where {R}
-    bounds = ntuple(i -> numvertices(sc), n)
-    return Cochain{R,K,n}(SparseTensor(R, bounds))
+"""
+    Cochain(R, K, n)
+
+Construct an identically zero n-cochain over `R`
+and whose base space is `K`.
+"""
+@inline function Cochain(::Type{R}, K::SimplicialComplex, n::Int) where {R}
+    return Cochain{R, n}(K, Dict{Tuple{Vararg{Int}}, R}())
+end
+
+# Basis cochains
+"""
+    indicator_cochain(R, K, σ)
+
+Return the indicator function `f` of the n-simplex `σ` as a [`Cochain`](@ref).
+That is, a cochain such that `f(σ) = 1` and  `f(τ) = 0`
+for all other n-simplices of `K`.
+
+Notice that, nevertheless,
+`f` is still skew-symmetric over permutations of `σ`s indices.
+
+If `Κ` does not contain `σ`,
+the returned cochain is identically zero.
+"""
+function indicator_cochain(::Type{R}, K::SimplicialComplex, simplex) where {R}
+    f = Cochain(R, K, simplex_dim(simplex))
+    if hassimplex(K, simplex)
+        f[simplex...] = one(R)
+    end
+    return f
 end
 
 ## Accessor functions
 """
-    basespace(ω)
+    basespace(ω::Cochain)
 
 Return the simplicial complex
 that `ω` is associated with.
 """
-basespace(::Cochain{R,K,n}) where {R,K,n} = K
+@inline basespace(f::Cochain) = f.basespace
 
 """
-    order(ω)
-Return the order of a [`Cochain`](@ref)
+    basering(ω::Cochain)
+
+Return the Ring that `ω` is defined over.
 """
-order(::Cochain{K,R,n}) where {R,K,n} = n
+
+@inline basering(::Cochain{R,n}) where {R,n} = R
+"""
+    degree(ω::Cochain)
+
+Return the degree of a [`Cochain`](@ref).
+"""
+@inline degree(::Cochain{R,n}) where {R,n} = n
+
 
 ## Interface for AbstractArray type
 Base.IndexStyle(::Type{<:Cochain}) = IndexCartesian()
 
-Base.size(f::Cochain) = f.data.dims
-
-Base.similar(::Cochain{R,K,n}, ::Type{T}, n) where {T,R,K,n}  = Cochain(T,K,n)
-
-function Base.getindex(f::Cochain{R,K,n}, I::Vararg{Int,n}) where {R,K,n}
-    order = sortperm(collect(I))
-    return levicivita(order) * f.data[I[order]]
+function Base.size(f::Cochain)
+    return ntuple(i -> numvertices(basespace(f)), degree(f)+1)
 end
 
-function Base.setindex!(f::Cochain{R,K,n}, v, I::Vararg{Int, n}) where {R,K,n}
-    simplex = I[sortperm(collect(I))]
-    if hassimplex(K, I)
-        f.data[simplex] = v
+function Base.similar(f::Cochain, ::Type{T}, m::Int) where {T}
+    return Cochain(T, basespace(f), m)
+end
+
+function Base.getindex(f::Cochain{R, n}, I::Vararg{Int}) where {R,n}
+    length(I) == degree(f) + 1 || throw(BoundsError(f, I))
+    perm    = sortperm(collect(I))
+    simplex = I[perm]
+    return levicivita(perm) * get(f.values, simplex, zero(R))
+end
+
+function Base.setindex!(f::Cochain{R,n}, v::R, I::Vararg{Int}) where {R,n}
+    length(I) == degree(f) + 1 || throw(BoundsError(f, I))
+    perm    = sortperm(collect(I))
+    simplex = I[perm]
+    if hassimplex(basespace(f), simplex)
+        if iszero(v)
+            delete!(f.values, simplex)
+        else
+            f.values[simplex] = levicivita(perm) * v
+        end
     end
     return v
 end
 
+function Base.collect(f::Cochain{R,n}) where {R,n}
+    A = zeros(R, size(f))
+    for (k,v) in f.values
+        for p in permutations(k)
+            A[p...] = signperm(p) * v
+        end
+    end
+    return A
+end
+
+## Showing Cochains on REPL
+function Base.show(io::IO, f::Cochain)
+    show(io, collect(f))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", f::Cochain)
+    #= show(io, "text/plain", collect(f)) =#
+    println(io, degree(f), "-th degree Cochain over ", basering(f), ":")
+    Base.print_array(io, collect(f))
+end
+
 ## Vector Space structure
-function Base.:+(f::Cochain{R,K,n}, g::Cochain{R,K,n}) where {R,K,n}
-    return Cochain{R,K,n}(f.data + g.data)
+
+@inline function Base.:+(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
+    assert_basespaces(f, g)
+    return Cochain{R,n}(basespace(f), merge(+, f.values, g.values))
 end
 
-function Base.:-(f::Cochain{R,K,n}, g::Cochain{R,K,n}) where {R,K,n}
-    return Cochain{R,K,n}(f.data - g.data)
+@inline function Base.:-(f::Cochain{R,n}) where {R,n}
+    return Cochain{R,n}(basespace(f), Dict(k => -v for(k,v) in f.values))
 end
 
-function Base.:*(a::R, f::Cochain{R,K,n}) where {R,K,n}
-    return Cochain{R,K,n}(a*f.data)
+@inline function Base.:-(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
+    assert_basespaces(f, g)
+    return f + (-g)
 end
 
-Base.:*(f::Cochain, a) = a*f
+@inline function Base.zero(f::Cochain{R,n}) where {R,n}
+    Cochain(R, basespace(f), n)
+end
 
-Base.zero(::Cochain{R,K,n})       where {R,K,n} = Cochain(R, K, n)
-Base.zero(::Type{Cochain{R,K,n}}) where {R,K,n} = Cochain(R, K, n)
+@inline function Base.:*(a::R, f::Cochain{R,n}) where {R<:Number,n}
+    if iszero(a)
+        return zero(f)
+    else
+        return Cochain{R, n}(basespace(f), Dict(k => a*v for (k,v) in f.values))
+    end
+end
 
+@inline Base.:*(f::Cochain, a) = a * f
+
+Base.iszero(f::Cochain) = all(x -> iszero(x.second), f.values)
 """
     norm(ω[, p])
 
 Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 
-The default is `p=2`.
+By default, `p=2`.
 """
-norm(f::Cochain, p=2) = sum(map(t -> abs(t)^p, f)) ^ inv(p)
+norm(f::Cochain, p::Real=2) = sum(t -> abs(t)^p, f) ^ inv(p)
 
 """
     norm2(ω)
@@ -109,11 +200,29 @@ norm2(f::Cochain) = sum(abs2, f)
 
 Usual inner product between [`Cochain`](@ref)s.
 """
-inner(f::Cochain, g::Cochain) = sum(map(*, f, g))
+function inner(f::Cochain, g::Cochain)
+    assert_basespaces(f,g)
+    return sum(f .* g)
+end
 
 ## Topological Operators
 
-@doc raw"""
+"""
+    cup(ω, ξ)
+
+The cup product ``\\omega \\smile \\xi``
+of two [`Cochain`](@ref)s.
+"""
+function cup(f::Cochain{R,n}, g::Cochain{R,m}) where {R,n,m}
+    assert_basespaces(f, g)
+    h = Cochain(R, basespace(f), n + m)
+    for s in simplices(basespace(f), n + m)
+        h[s...] = f[take(s,n+1)...] * g[drop(s,n)...]
+    end
+    return h
+end
+
+"""
     coboundary(ω)
 
 The coboundary or __discrete exterior derivative__
@@ -122,9 +231,9 @@ of a [`Cochain`](@ref).
 The coboundary of ``ω`` applied to a simplex ``σ``
 equals the alternating sum of ``ω`` applied to the faces of ``σ``.
 """
-function coboundary(f::Cochain{R,K,n}) where {R,K,n}
-    df = Cochain{R,K, n+1}
-    for s in simplices{k+1}
+function coboundary(f::Cochain{R,n}) where {R,n}
+    df = Cochain(R, basespace(f), n+1)
+    for s in simplices(basespace(f), n+1)
         sg = 1
         for t in faces(s)
             df[s...] += sg * f[t...]
@@ -134,23 +243,28 @@ function coboundary(f::Cochain{R,K,n}) where {R,K,n}
     return df
 end
 
-@doc raw"""
-    coboundary_adj(ω)
-
-The adjoint of the coboundary
-with respect to the usual inner product over the k-simplices
-of a simplicial complex `K`.
-This function satisfies
-```math
-    \langle ξ, \mathrm{coboundary_adj}(ω) \rangle_K
-    = \langle boundary(ξ), ω \rangle_K
-```
 """
-function coboundary_adj(f::Cochain)
+    coboundary_adj(ω[, inner])
+
+    The adjoint of the [`coboundary`](@ref)
+with respect to a given inner product.
+
+If the variable inner is omitted,
+the default is the canonical inner product
+treating `ω` as a n-th order tensor.
+"""
+function coboundary_adj(f::Cochain{R,n}, inner=inner) where {R,n}
+    K = basespace(f)
+    δf = Cochain(R, K, degree(f)-1)
+    for s in simplices(K, degree(f)-1)
+        e_s = (1/n) * indicator_cochain(R, K, s)
+        δf[s...] = inner(f, coboundary(e_s))
+    end
+    return δf
 end
 
 """
-    laplacian(ω)
+    laplacian(ω[, inner])
 
 The (higher-order) laplacian of `ω`,
 defined as
@@ -158,8 +272,30 @@ defined as
     \\delta = d d^* + d^* d
 ```
 where ``d`` and ``d^*`` are, respectively,
-the `coboundary` and `coboundary_adj` operators.
+the [`coboundary`](@ref) and [`coboundary_adj`](@ref) operators.
+
+The parameter `inner` dictates the inner product
+needed for the laplacian's definition.
+If it is omitted, the default is the usual dot product
+treating `ω` as a n-th order tensor.
 """
-@inline function laplacian(f::Cochain)
-    return coboundary(coboundary_adj(f)) + coboundary_adj(coboundary(f))
+@inline function laplacian(f::Cochain, inner=inner)
+    return coboundary(coboundary_adj(f, inner)) + coboundary_adj(coboundary(f), inner)
 end
+
+@doc raw"""
+    hodge(ω)
+
+Hodge decomposition of a [`Cochain`](@ref).
+
+Return a tuple `(α,β,γ)` such that
+```
+ω == coboundary(α) + coboundary_adj(β) + γ
+laplacian(γ) == 0
+```
+"""
+#= function hodge(f::Cochain) =#
+#=     laplacian2 = laplacian ∘ laplacian =#
+#=     u = conjugate_gradient(laplacian∘laplacian, laplacian(f)) =#
+#=     return coboundary(u), coboundary_adj(u), x - laplacian(u) =#
+#= end =#

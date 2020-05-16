@@ -17,5 +17,26 @@ export dimension,
        simplices,
        numsimplices,
        insert!
+       # remove!,
+       # flag,
+       # betti,
+       # expansion,
+       # cofaces
+       # skeleton
+
+# Cochain algebra over a simplicial complex
+include("Cochains.jl")
+
+export Cochain
+export basespace,
+       degree,
+       indicator_cochain,
+       norm,
+       norm2,
+       inner,
+       cup,
+       coboundary,
+       coboundary_adj,
+       laplacian
 
 end # module
