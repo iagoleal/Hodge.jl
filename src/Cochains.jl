@@ -1,7 +1,7 @@
 import Combinatorics: levicivita, permutations
 using ComputedFieldTypes
 
-using Base: +, *, -, zero, iszero
+using Base: +, *, -, zero, iszero, ==
 using Base: size, similar, getindex, setindex!
 using Base: show
 import Base.Iterators: take, drop
@@ -34,7 +34,6 @@ struct Cochain{R<:Number, n}
     basespace :: SimplicialComplex
     values    :: Dict{Tuple{Vararg{Int}}, R}
 end
-
 
 ## Constructing Cochains
 
@@ -113,7 +112,7 @@ function Base.getindex(f::Cochain{R, n}, I::Vararg{Int}) where {R,n}
     return levicivita(perm) * get(f.values, simplex, zero(R))
 end
 
-function Base.setindex!(f::Cochain{R,n}, v::R, I::Vararg{Int}) where {R,n}
+function Base.setindex!(f::Cochain{R,n}, v, I::Vararg{Int}) where {R,n}
     length(I) == degree(f) + 1 || throw(BoundsError(f, I))
     perm    = sortperm(collect(I))
     simplex = I[perm]
@@ -125,6 +124,10 @@ function Base.setindex!(f::Cochain{R,n}, v::R, I::Vararg{Int}) where {R,n}
         end
     end
     return v
+end
+
+function Base.copy(f::Cochain{R,n}) where {R,n}
+    return Cochain{R,n}(basespace(f), copy(f.values))
 end
 
 function Base.collect(f::Cochain{R,n}) where {R,n}
@@ -179,6 +182,11 @@ end
 @inline Base.:*(f::Cochain, a) = a * f
 
 Base.iszero(f::Cochain) = all(x -> iszero(x.second), f.values)
+
+function Base.:(==)(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
+    assert_basespaces(f, g)
+    return iszero(f - g)
+end
 """
     norm(ω[, p])
 
@@ -186,14 +194,15 @@ Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 
 By default, `p=2`.
 """
-norm(f::Cochain, p::Real=2) = sum(t -> abs(t)^p, f) ^ inv(p)
+norm(f::Cochain, p::Real=2) =
+    isinf(p) ? maximum(collect(f)) : sum((t -> abs(t)^p).(f)) ^ inv(p)
 
 """
     norm2(ω)
 
 Calculate the square of the usual inner product norm of a [`Cochain`](@ref) `ω`.
 """
-norm2(f::Cochain) = sum(abs2, f)
+norm2(f::Cochain) = sum(abs2.(f))
 
 """
     inner(ω, ξ)
@@ -242,6 +251,8 @@ function coboundary(f::Cochain{R,n}) where {R,n}
     end
     return df
 end
+
+## Dependent on a choice of inner product
 
 """
     coboundary_adj(ω[, inner])
