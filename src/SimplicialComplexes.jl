@@ -75,8 +75,6 @@ function simplices(sc::SimplicialComplex, dim=nothing)
         return pushfirst!(proper_faces, []) # Remember to add the empty face
     elseif dim < 0 || dim > dimension(sc)
         return Vector{Int}[]
-    elseif dim == 0
-        return vertices(sc)
     else
         return SimplexTrees.getsimplices(sc.simplices, dim)
     end
