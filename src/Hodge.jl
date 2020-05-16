@@ -15,8 +15,7 @@ export dimension,
        vertices,
        numvertices,
        simplices,
-       numsimplices,
-       insert!
+       numsimplices
        # remove!,
        # flag,
        # betti,
