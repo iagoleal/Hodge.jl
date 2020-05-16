@@ -36,6 +36,7 @@ export basespace,
        cup,
        coboundary,
        coboundary_adj,
-       laplacian
+       laplacian,
+       hodge
 
 end # module

@@ -295,18 +295,57 @@ treating `ω` as a n-th order tensor.
 end
 
 @doc raw"""
-    hodge(ω)
+    hodge(ω[, inner])
 
-Hodge decomposition of a [`Cochain`](@ref).
+Hodge decomposition of a [`Cochain`](@ref)
+using `inner` as the inner product.
 
 Return a tuple `(α,β,γ)` such that
 ```
 ω == coboundary(α) + coboundary_adj(β) + γ
 laplacian(γ) == 0
 ```
+
+The parameter `inner` dictates the inner product
+needed for the `coboundary_adj` definition.
+If it is omitted, the default is the usual dot product
+treating `ω` as a n-th order tensor.
 """
-#= function hodge(f::Cochain) =#
-#=     laplacian2 = laplacian ∘ laplacian =#
-#=     u = conjugate_gradient(laplacian∘laplacian, laplacian(f)) =#
-#=     return coboundary(u), coboundary_adj(u), x - laplacian(u) =#
-#= end =#
+function hodge(f::Cochain, inner=inner)
+    L = x -> laplacian(x,inner) + x
+    u = conjugate_gradient(L, f, inner)
+    alpha = coboundary_adj(u, inner)
+    beta  = coboundary(u)
+    gamma = u
+    return alpha, beta, gamma
+end
+#= The method used here is the following:
+   We want to solve the following equation:
+   ω = dα + dβ + γ,   where Δγ = 0.
+
+   Lemma 1: C^n = im(Δ) ⊕ ker(Δ)
+     Proof: Let x in im(Δ)  (i.e. x = Δu, for some u in C^k)
+                y in ker(Δ) (i.e. Δy = 0)
+            Then <x,y> = <Au,y> = <u,Ay> = <u,0> = 0.
+
+   Therefore, there is γ harmonic such that
+         ω = Δu + γ
+         ω = d(δu) + δ(du) + γ.
+
+   To solve this equation in a basis free manner,
+   we use the conjugate gradient method.
+   Since it requires the operator to be positive-definite,
+   we supply L = Δ + λI to the method. (where λ > 0)
+   This gives us a unique solution u satisfying
+         (Δ + λI)u = ω
+         ω = Δu + λu
+         ω = d(δu) + δ(du) + λu.
+   Notice that, by Lemma 1, λu must be harmonic.
+
+   By setting:
+         α = δu
+         β = du
+         γ = λu,
+   We have three Cochains satisfying
+         ω = dα + δβ + γ.
+=#
