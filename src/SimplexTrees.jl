@@ -167,7 +167,7 @@ end
 Insert a simplex and all its faces on an existing simplicial complex.
 """
 @inline function insert!(complex::SimplexTree, simplex)
-    return insert_ordered!(complex, sort(simplex))
+    return insert_ordered!(complex, sort(collect(simplex)))
 end
 
 function insert_ordered!(complex::SimplexTree, simplex)
