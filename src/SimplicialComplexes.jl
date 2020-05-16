@@ -5,6 +5,8 @@
 # and not with single nodes of a simplex tree
 import .SimplexTrees
 
+using Base: insert!
+
 """
     SimplicialComplex
 
@@ -125,7 +127,7 @@ on the [`SimplicialComplex`](@ref) `sc`.
 
 The simplex does not need to be ordered.
 """
-function insert!(sc::SimplicialComplex, simplex)
+function Base.insert!(sc::SimplicialComplex, simplex)
     SimplexTrees.insert!(sc.simplices, simplex)
     newdim = length(simplex) -1
     if newdim > sc.dimension
