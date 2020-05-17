@@ -1,5 +1,4 @@
 import Combinatorics: levicivita, permutations
-using ComputedFieldTypes
 
 using Base: +, *, -, zero, iszero, ==
 using Base: size, similar, getindex, setindex!
@@ -131,7 +130,7 @@ function Base.copy(f::Cochain{R,n}) where {R,n}
 end
 
 function Base.collect(f::Cochain{R,n}) where {R,n}
-    A = zeros(R, size(f))
+    A = zeros(R, size(f)) :: Array{R, n+1}
     for (k,v) in f.values
         for p in permutations(k)
             A[p...] = signperm(p) * v
@@ -174,9 +173,15 @@ end
 @inline function Base.:*(a::R, f::Cochain{R,n}) where {R<:Number,n}
     if iszero(a)
         return zero(f)
+    elseif isone(a)
+        return f
     else
         return Cochain{R, n}(basespace(f), Dict(k => a*v for (k,v) in f.values))
     end
+end
+
+function Base.:(*)(a::Number, f::Cochain{R}) where {R}
+    return convert(R, a) * f
 end
 
 @inline Base.:*(f::Cochain, a) = a * f
@@ -187,6 +192,7 @@ function Base.:(==)(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
     assert_basespaces(f, g)
     return iszero(f - g)
 end
+
 """
     norm(ω[, p])
 
@@ -194,8 +200,13 @@ Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 
 By default, `p=2`.
 """
-norm(f::Cochain, p::Real=2) =
-    isinf(p) ? maximum(collect(f)) : sum((t -> abs(t)^p).(f)) ^ inv(p)
+function norm(f::Cochain, p::Real=2)
+    if isinf(p)
+        return maximum(collect(f))
+    else
+        return sum((t -> abs(t)^p).(f)) ^ inv(p)
+    end
+end
 
 """
     norm2(ω)
@@ -240,9 +251,9 @@ of a [`Cochain`](@ref).
 The coboundary of ``ω`` applied to a simplex ``σ``
 equals the alternating sum of ``ω`` applied to the faces of ``σ``.
 """
-function coboundary(f::Cochain{R,n}) where {R,n}
-    df = Cochain(R, basespace(f), n+1)
-    for s in simplices(basespace(f), n+1)
+function coboundary(f::Cochain)
+    df = Cochain(basering(f), basespace(f), degree(f) + 1)
+    for s in simplices(basespace(f), degree(f) + 1)
         sg = 1
         for t in faces(s)
             df[s...] += sg * f[t...]
@@ -255,27 +266,26 @@ end
 ## Dependent on a choice of inner product
 
 """
-    coboundary_adj(ω[, inner])
+    coboundary_adj(ω)
 
-    The adjoint of the [`coboundary`](@ref)
-with respect to a given inner product.
-
-If the variable inner is omitted,
-the default is the canonical inner product
-treating `ω` as a n-th order tensor.
+The adjoint of the [`coboundary`](@ref)
+with respect to usual inner product.
 """
-function coboundary_adj(f::Cochain{R,n}, inner=inner) where {R,n}
-    K = basespace(f)
-    δf = Cochain(R, K, degree(f)-1)
-    for s in simplices(K, degree(f)-1)
-        e_s = (1/n) * indicator_cochain(R, K, s)
+#= If the variable inner is omitted, =#
+#= the default is the canonical inner product =#
+#= treating `ω` as a n-th order tensor. =#
+function coboundary_adj(f::Cochain)
+    K  = basespace(f)
+    δf = Cochain(basering(f), K, degree(f) - 1)
+    for s in simplices(K, degree(f) - 1)
+        e_s = (1//degree(f)) * indicator_cochain(basering(f), K, s)
         δf[s...] = inner(f, coboundary(e_s))
     end
     return δf
-end
+end # Note: This only works for diagonal inner products...
 
 """
-    laplacian(ω[, inner])
+    laplacian(ω)
 
 The (higher-order) laplacian of `ω`,
 defined as
@@ -284,18 +294,17 @@ defined as
 ```
 where ``d`` and ``d^*`` are, respectively,
 the [`coboundary`](@ref) and [`coboundary_adj`](@ref) operators.
-
-The parameter `inner` dictates the inner product
-needed for the laplacian's definition.
-If it is omitted, the default is the usual dot product
-treating `ω` as a n-th order tensor.
 """
-@inline function laplacian(f::Cochain, inner=inner)
-    return coboundary(coboundary_adj(f, inner)) + coboundary_adj(coboundary(f), inner)
+#= The parameter `inner` dictates the inner product =#
+#= needed for the laplacian's definition. =#
+#= If it is omitted, the default is the usual dot product =#
+#= treating `ω` as a n-th order tensor. =#
+@inline function laplacian(f::Cochain)
+    return coboundary(coboundary_adj(f)) + coboundary_adj(coboundary(f))
 end
 
 @doc raw"""
-    hodge(ω[, inner])
+    hodge(ω)
 
 Hodge decomposition of a [`Cochain`](@ref)
 using `inner` as the inner product.
@@ -305,18 +314,19 @@ Return a tuple `(α,β,γ)` such that
 ω == coboundary(α) + coboundary_adj(β) + γ
 laplacian(γ) == 0
 ```
-
-The parameter `inner` dictates the inner product
-needed for the `coboundary_adj` definition.
-If it is omitted, the default is the usual dot product
-treating `ω` as a n-th order tensor.
 """
-function hodge(f::Cochain, inner=inner)
-    L = x -> laplacian(x,inner) + x
-    u = conjugate_gradient(L, f, inner)
-    alpha = coboundary_adj(u, inner)
+#= The parameter `inner` dictates the inner product =#
+#= needed for the `coboundary_adj` definition. =#
+#= If it is omitted, the default is the usual dot product =#
+#= treating `ω` as a n-th order tensor. =#
+function hodge(f::Cochain; atol=1e-9)
+    maxiters = numsimplices(basespace(f), degree(f))
+    λ = atol
+    L = x -> laplacian(x) + λ * x
+    u = conjugate_gradient(L, f, inner; atol=atol)
+    alpha = coboundary_adj(u)
     beta  = coboundary(u)
-    gamma = u
+    gamma = λ * u
     return alpha, beta, gamma
 end
 #= The method used here is the following:
@@ -335,17 +345,18 @@ end
    To solve this equation in a basis free manner,
    we use the conjugate gradient method.
    Since it requires the operator to be positive-definite,
-   we supply L = Δ + λI to the method. (where λ > 0)
+   we supply L = Δ + εI to the method. (where ε > 0 is small)
    This gives us a unique solution u satisfying
-         (Δ + λI)u = ω
-         ω = Δu + λu
-         ω = d(δu) + δ(du) + λu.
-   Notice that, by Lemma 1, λu must be harmonic.
+         (Δ + εI)u = ω
+         ω = Δu + εu
+         ω = d(δu) + δ(du) + εu.
+   By Lemma 1 and continuity,
+   If ε is small enough, Δ(εu) ≈ 0.
 
    By setting:
          α = δu
          β = du
-         γ = λu,
+         γ = εu,
    We have three Cochains satisfying
          ω = dα + δβ + γ.
 =#

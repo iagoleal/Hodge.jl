@@ -29,6 +29,7 @@ include("Cochains.jl")
 
 export Cochain
 export basespace,
+       basering,
        degree,
        indicator_cochain,
        norm,
