@@ -23,6 +23,13 @@ mutable struct SimplicialComplex
     SimplicialComplex() = new(-1, SimplexTrees.STRoot())
 end
 
+# Construct a simplicial complex from an iterator of simplices
+function SimplicialComplex(iter)
+    sc = SimplicialComplex()
+    foreach(s -> insert!(sc, s), iter)
+    return sc
+end
+
 # Acessor functions
 """
     dimension(sc)
