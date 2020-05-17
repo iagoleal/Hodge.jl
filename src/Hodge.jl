@@ -15,7 +15,8 @@ export dimension,
        vertices,
        numvertices,
        simplices,
-       numsimplices
+       numsimplices,
+       euler_characteristic
        # remove!,
        # flag,
        # betti,

@@ -140,3 +140,20 @@ function Base.insert!(sc::SimplicialComplex, simplex)
     end
     return sc
 end
+
+## Topological features
+"""
+    euler_characteristic(K)
+
+Return the Euler characteristic of a [`SimplicialComplex`](@ref).
+
+"""
+function euler_characteristic(sc::SimplicialComplex)
+    x  = 0 :: Int
+    sg = 1 :: Int
+    for i in 0:dimension(sc)
+        x += sg * numsimplices(sc, i)
+        sg = -sg
+    end
+    return x
+end
