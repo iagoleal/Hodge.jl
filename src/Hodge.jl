@@ -16,13 +16,13 @@ export dimension,
        numvertices,
        simplices,
        numsimplices,
+       skeleton,
        euler_characteristic
        # remove!,
        # flag,
        # betti,
        # expansion,
        # cofaces
-       # skeleton
 
 # Cochain algebra over a simplicial complex
 include("Cochains.jl")

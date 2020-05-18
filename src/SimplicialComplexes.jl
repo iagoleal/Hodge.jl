@@ -23,6 +23,11 @@ mutable struct SimplicialComplex
     SimplicialComplex() = new(-1, SimplexTrees.STRoot())
 end
 
+
+################################
+# Construct simplicial complex #
+################################
+
 # Construct a simplicial complex from an iterator of simplices
 function SimplicialComplex(iter)
     sc = SimplicialComplex()
@@ -30,7 +35,38 @@ function SimplicialComplex(iter)
     return sc
 end
 
-# Acessor functions
+Base.copy(sc::SimplicialComplex) = SimplicialComplex(simplices(sc))
+
+"""
+    insert!(sc, σ)
+
+Insert the simplex `σ` and all its faces
+on the [`SimplicialComplex`](@ref) `sc`.
+
+The simplex does not need to be ordered.
+"""
+function Base.insert!(sc::SimplicialComplex, simplex)
+    SimplexTrees.insert!(sc.simplices, simplex)
+    newdim = length(simplex) -1
+    if newdim > sc.dimension
+        sc.dimension = newdim
+    end
+    return sc
+end
+
+"""
+    skeleton(sc, k)
+
+Return the k-skeleton of a [`SimplicialComplex`](@ref).
+"""
+function skeleton(sc::SimplicialComplex, k::Integer)
+    return SimplicialComplex(Iterators.flatten(simplices(sc,i) for i in 0:k))
+end
+
+#########################################
+# Access Simplicial Complex information #
+#########################################
+
 """
     dimension(sc)
 
@@ -75,12 +111,16 @@ If the parameter `k` is not given,
 return __all__ simplices of `sc`
 including the empty face.
 """
-function simplices(sc::SimplicialComplex, dim=nothing)
-    if dim === nothing
-        proper_faces = vcat(map( k -> SimplexTrees.getsimplices(sc.simplices, k)
-                       , 0:dimension(sc))...)
-        return pushfirst!(proper_faces, []) # Remember to add the empty face
-    elseif dim < 0 || dim > dimension(sc)
+function simplices end
+
+function simplices(sc::SimplicialComplex) :: Vector{Vector{Int}}
+
+        proper_faces = Iterators.flatten(SimplexTrees.getsimplices(sc.simplices, k) for k in 0:dimension(sc))
+        return pushfirst!(collect(proper_faces), []) # Remember to add the empty face
+end
+
+function simplices(sc::SimplicialComplex, dim::Integer) :: Vector{Vector{Int}}
+    if dim < 0 || dim > dimension(sc)
         return Vector{Int}[]
     else
         return SimplexTrees.getsimplices(sc.simplices, dim)
@@ -99,11 +139,14 @@ including the empty face.
 This function is a more efficient implementation of
 `length ∘ simplices`.
 """
-function numsimplices(sc::SimplicialComplex, dim=nothing)
-    if dim === nothing
-        return 1 + sum(map( k -> SimplexTrees.numsimplices(sc.simplices, k)
-                          , 0:dimension(sc)))
-    elseif dim < 0 || dim > dimension(sc)
+function numsimplices end
+
+function numsimplices(sc::SimplicialComplex) :: Int
+    return 1 + sum(Iterators.flatten(SimplexTrees.numsimplices(sc.simplices, k) for k in 0:dimension(sc)))
+end
+
+function numsimplices(sc::SimplicialComplex, dim::Integer) :: Int
+    if dim < 0 || dim > dimension(sc)
         return 0
     elseif dim == 0
         return numvertices(sc)
@@ -122,26 +165,11 @@ contains the simplex `σ`.
     return SimplexTrees.hassimplex(sc.simplices, simplex)
 end
 
-## Construct simplicial complex
 
-"""
-    insert!(sc, σ)
+########################
+# Topological Features #
+########################
 
-Insert the simplex `σ` and all its faces
-on the [`SimplicialComplex`](@ref) `sc`.
-
-The simplex does not need to be ordered.
-"""
-function Base.insert!(sc::SimplicialComplex, simplex)
-    SimplexTrees.insert!(sc.simplices, simplex)
-    newdim = length(simplex) -1
-    if newdim > sc.dimension
-        sc.dimension = newdim
-    end
-    return sc
-end
-
-## Topological features
 """
     euler_characteristic(K)
 

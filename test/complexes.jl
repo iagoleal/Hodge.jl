@@ -3,6 +3,27 @@ using Test
 using Random
 
 @testset "Simplicial Complexes" begin
+    @testset "Construction" begin
+        dim = 3
+        simplex = rand(Int, dim+1)
+        @test_throws UndefKeywordError B = SimplicialComplex(simplex)
+        B = SimplicialComplex([simplex])
+        for k in 0:dim
+            Bk = skeleton(B, k)
+            # Until k, has the same simplices
+            for i in 0:k
+                ss = simplices(Bk, i)
+                @test simplices(B, i) == ss
+                @test !isempty(ss)
+            end
+            # After that, is empty
+            for i in k+1:dim
+                ss = simplices(Bk, i)
+                @test simplices(B, i) != ss
+                @test isempty(ss)
+            end
+        end
+    end
     @testset "Euler Characteristic" begin
         # Decomposition of sphere S^2
         S = SimplicialComplex([[2,3,4],
