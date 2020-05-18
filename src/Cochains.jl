@@ -2,6 +2,7 @@ import Combinatorics: levicivita, permutations
 
 using Base: +, *, -, zero, iszero, ==
 using Base: size, similar, getindex, setindex!
+using Base: float, complex, rationalize
 using Base: show
 import Base.Iterators: take, drop
 
@@ -148,6 +149,23 @@ function Base.show(io::IO, ::MIME"text/plain", f::Cochain)
     #= show(io, "text/plain", collect(f)) =#
     println(io, degree(f), "-th degree Cochain over ", basering(f), ":")
     Base.print_array(io, collect(f))
+end
+
+## Conversion between Base Rings
+function Base.float(f::Cochain{R}) where {R}
+    return Cochain{float(R), degree(f)}(basespace(f), Dict(k => float(v) for (k,v) in f.values))
+end
+
+function Base.complex(f::Cochain{R}) where {R}
+    return Cochain{complex(R), degree(f)}(basespace(f), Dict(k => complex(v) for (k,v) in f.values))
+end
+
+function Base.rationalize(::Type{T}, f::Cochain{R}; kvs...) where {T<:Integer, R<:AbstractFloat}
+    return Cochain{Rational{T}, degree(f)}(basespace(f), Dict(k => rationalize(T, v; kvs...) for (k,v) in f.values))
+end
+
+function Base.rationalize(f::Cochain{R}; kvs...) where {R<:AbstractFloat}
+    return rationalize(Int, f; kvs...)
 end
 
 ## Vector Space structure

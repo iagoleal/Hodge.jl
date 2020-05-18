@@ -100,6 +100,25 @@ using Random
         g - f
         cup(f,g)
     end
+    @testset "Type conversions" begin
+        K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1), (1,2,3,4,5)))
+        dim = rand(0:4)
+        f = Cochain(Int, K, dim)
+        for s in simplices(K,dim)
+            f[s...] = rand(Int)
+        end
+        @test float(f) isa Cochain{Float64}
+        @test complex(f) isa Cochain{Complex{Int}}
+        @test complex(float(f)) isa Cochain{Complex{Float64}}
+
+        dim = rand(0:4)
+        g = Cochain(Float64, K, dim)
+        for s in simplices(K,dim)
+            g[s...] = rand(Float64)
+        end
+        @test rationalize(g) isa Cochain{Rational{Int}}
+        @test rationalize(BigInt, g) isa Cochain{Rational{BigInt}}
+    end
     @testset "Hodge Decomposition" begin
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1)))
         f = Cochain(Float64, K, 1)
