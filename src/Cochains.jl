@@ -32,7 +32,7 @@ This second perspective follows the ideas from the paper:
 """
 struct Cochain{R<:Number, n}
     basespace :: SimplicialComplex
-    values    :: Dict{Tuple{Vararg{Int}}, R}
+    data      :: Dict{Tuple{Vararg{Int}}, R}
 end
 
 ## Constructing Cochains
@@ -109,7 +109,7 @@ function Base.getindex(f::Cochain{R, n}, I::Vararg{Int}) where {R,n}
     length(I) == degree(f) + 1 || throw(BoundsError(f, I))
     perm    = sortperm(collect(I))
     simplex = I[perm]
-    return levicivita(perm) * get(f.values, simplex, zero(R))
+    return levicivita(perm) * get(f.data, simplex, zero(R))
 end
 
 function Base.setindex!(f::Cochain{R,n}, v, I::Vararg{Int}) where {R,n}
@@ -118,21 +118,21 @@ function Base.setindex!(f::Cochain{R,n}, v, I::Vararg{Int}) where {R,n}
     simplex = I[perm]
     if hassimplex(basespace(f), simplex)
         if iszero(v)
-            delete!(f.values, simplex)
+            delete!(f.data, simplex)
         else
-            f.values[simplex] = levicivita(perm) * v
+            f.data[simplex] = levicivita(perm) * v
         end
     end
     return v
 end
 
 function Base.copy(f::Cochain{R,n}) where {R,n}
-    return Cochain{R,n}(basespace(f), copy(f.values))
+    return Cochain{R,n}(basespace(f), copy(f.data))
 end
 
 function Base.collect(f::Cochain{R,n}) where {R,n}
     A = zeros(R, size(f)) :: Array{R, n+1}
-    for (k,v) in f.values
+    for (k,v) in f.data
         for p in permutations(k)
             A[p...] = signperm(p) * v
         end
@@ -151,32 +151,37 @@ function Base.show(io::IO, ::MIME"text/plain", f::Cochain)
     Base.print_array(io, collect(f))
 end
 
-## Conversion between Base Rings
+#########################
+# Base Ring Conversions #
+#########################
+
 function Base.float(f::Cochain{R}) where {R}
-    return Cochain{float(R), degree(f)}(basespace(f), Dict(k => float(v) for (k,v) in f.values))
+    return Cochain{float(R), degree(f)}(basespace(f), Dict(k => float(v) for (k,v) in f.data))
 end
 
 function Base.complex(f::Cochain{R}) where {R}
-    return Cochain{complex(R), degree(f)}(basespace(f), Dict(k => complex(v) for (k,v) in f.values))
+    return Cochain{complex(R), degree(f)}(basespace(f), Dict(k => complex(v) for (k,v) in f.data))
 end
 
 function Base.rationalize(::Type{T}, f::Cochain{R}; kvs...) where {T<:Integer, R<:AbstractFloat}
-    return Cochain{Rational{T}, degree(f)}(basespace(f), Dict(k => rationalize(T, v; kvs...) for (k,v) in f.values))
+    return Cochain{Rational{T}, degree(f)}(basespace(f), Dict(k => rationalize(T, v; kvs...) for (k,v) in f.data))
 end
 
 function Base.rationalize(f::Cochain{R}; kvs...) where {R<:AbstractFloat}
     return rationalize(Int, f; kvs...)
 end
 
-## Vector Space structure
+##########################
+# Vector Space Structure #
+##########################
 
 @inline function Base.:+(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
     assert_basespaces(f, g)
-    return Cochain{R,n}(basespace(f), merge(+, f.values, g.values))
+    return Cochain{R,n}(basespace(f), merge(+, f.data, g.data))
 end
 
 @inline function Base.:-(f::Cochain{R,n}) where {R,n}
-    return Cochain{R,n}(basespace(f), Dict(k => -v for(k,v) in f.values))
+    return Cochain{R,n}(basespace(f), Dict(k => -v for(k,v) in f.data))
 end
 
 @inline function Base.:-(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
@@ -194,7 +199,7 @@ end
     elseif isone(a)
         return f
     else
-        return Cochain{R, n}(basespace(f), Dict(k => a*v for (k,v) in f.values))
+        return Cochain{R, n}(basespace(f), Dict(k => a*v for (k,v) in f.data))
     end
 end
 
@@ -204,7 +209,7 @@ end
 
 @inline Base.:*(f::Cochain, a) = a * f
 
-Base.iszero(f::Cochain) = all(x -> iszero(x.second), f.values)
+Base.iszero(f::Cochain) = all(iszero, values(f.data))
 
 function Base.:(==)(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
     assert_basespaces(f, g)
@@ -219,10 +224,12 @@ Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 By default, `p=2`.
 """
 function norm(f::Cochain, p::Real=2)
-    if isinf(p)
-        return maximum(collect(f))
+    if iszero(f)
+        return zero(basering(f))
+    elseif isinf(p)
+        return maximum(values(f.data))
     else
-        return sum((t -> abs(t)^p).(f)) ^ inv(p)
+        return sum(t -> abs(t)^p, values(f.data)) ^ inv(p)
     end
 end
 
@@ -231,19 +238,34 @@ end
 
 Calculate the square of the usual inner product norm of a [`Cochain`](@ref) `ω`.
 """
-norm2(f::Cochain) = sum(abs2.(f))
+norm2(f::Cochain{R}) where R = iszero(f) ? zero(R) : sum(abs2, values(f.data))
 
-"""
+@doc raw"""
     inner(ω, ξ)
 
 Usual inner product between [`Cochain`](@ref)s.
+
+This inner product sees a n-cochain as a free vector space
+over the (non-oriented) n-simplices of their base space.
+Formally,
+```math
+    \sum_{\sigma \in \mathrm{simplices}(K,n)} f(σ) g(σ).
+```
 """
-function inner(f::Cochain, g::Cochain)
+function inner(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
     assert_basespaces(f,g)
-    return sum(f .* g)
+    mutual_keys = intersect(keys(f.data), keys(g.data))
+    if isempty(mutual_keys)
+        return zero(R)
+    else
+        return sum(g[i...] * f[i...] for i in mutual_keys)
+    end
 end
 
-## Topological Operators
+
+#########################
+# Topological Operators #
+#########################
 
 """
     cup(ω, ξ)
@@ -296,7 +318,7 @@ function coboundary_adj(f::Cochain)
     K  = basespace(f)
     δf = Cochain(basering(f), K, degree(f) - 1)
     for s in simplices(K, degree(f) - 1)
-        e_s = (1//degree(f)) * indicator_cochain(basering(f), K, s)
+        e_s = indicator_cochain(basering(f), K, s)
         δf[s...] = inner(f, coboundary(e_s))
     end
     return δf
@@ -341,7 +363,7 @@ function hodge(f::Cochain; atol=1e-9)
     maxiters = numsimplices(basespace(f), degree(f))
     λ = atol
     L = x -> laplacian(x) + λ * x
-    u = conjugate_gradient(L, f, inner; atol=atol)
+    u = conjugate_gradient(L, f, inner; atol=atol, maxiters=maxiters)
     alpha = coboundary_adj(u)
     beta  = coboundary(u)
     gamma = λ * u

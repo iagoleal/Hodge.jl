@@ -26,11 +26,11 @@ using Random
         @test f[3,5] === 0
         # Assigning zero should not store anything in the internal Dict
         f[1,2] = 0
-        @test !haskey(f.values, (1,2))
+        @test !haskey(f.data, (1,2))
         f[1,2] = 5
-        @test haskey(f.values, (1,2))
+        @test haskey(f.data, (1,2))
         f[1,2] = 0
-        @test !haskey(f.values, (1,2))
+        @test !haskey(f.data, (1,2))
         # Out of vertices:
         @test iszero(f[1,6])
         @test iszero(f[0,1])
