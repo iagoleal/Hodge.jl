@@ -4,6 +4,7 @@
 # In special, in here we are always working with an entire simplicial complex
 # and not with single nodes of a simplex tree
 import .SimplexTrees
+import LinearAlgebra
 
 using Base: insert!
 
@@ -185,3 +186,20 @@ function euler_characteristic(sc::SimplicialComplex)
     end
     return x
 end
+
+"""
+    betti(K)
+
+Return the Betti numbers of a [`SimplicialComplex`](@ref).
+"""
+function betti end;
+
+function betti(sc::SimplicialComplex, k::Integer) :: Int
+    if k < 0 || k > dimension(sc)
+        return 0
+    end
+    A = matrixify(laplacian, sc, k)
+    return numsimplices(sc, k) - LinearAlgebra.rank(A)
+end
+
+betti(sc::SimplicialComplex) = [betti(sc,k) for k in 0:dimension(sc)]

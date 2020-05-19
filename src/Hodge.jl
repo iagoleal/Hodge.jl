@@ -17,10 +17,10 @@ export dimension,
        simplices,
        numsimplices,
        skeleton,
-       euler_characteristic
+       euler_characteristic,
+       betti
        # remove!,
        # flag,
-       # betti,
        # expansion,
        # cofaces
 

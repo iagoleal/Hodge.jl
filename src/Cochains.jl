@@ -1,4 +1,5 @@
 import Combinatorics: levicivita, permutations
+import SparseArrays
 
 using Base: +, *, -, zero, iszero, ==
 using Base: size, similar, getindex, setindex!
@@ -70,7 +71,11 @@ function indicator_cochain(::Type{R}, K::SimplicialComplex, simplex) where {R}
     return f
 end
 
-## Accessor functions
+
+######################
+# Accessor functions #
+######################
+
 """
     basespace(ω::Cochain)
 
@@ -400,3 +405,24 @@ end
    We have three Cochains satisfying
          ω = dα + δβ + γ.
 =#
+
+##########################################
+# Write cochains / operators as matrices #
+##########################################
+
+function vectorfy(f::Cochain{R, n}) where {R, n}
+    return (f[s...] for s in simplices(basespace(f), n))
+end
+
+function matrixify(L, K::SimplicialComplex, deg_from::Integer, deg_to::Integer=deg_from)
+    n = numsimplices(K, deg_from)
+    m = numsimplices(K, deg_to)
+    A = SparseArrays.spzeros(n, m)
+    for (i, s) in enumerate(simplices(K, deg_from))
+        Ae_s = (vectorfy ∘ L ∘ indicator_cochain)(Float64, K, s)
+        for (j,v) in enumerate(Ae_s)
+            A[j, i] = v
+        end
+    end
+    return A
+end
