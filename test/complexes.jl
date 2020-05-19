@@ -8,6 +8,8 @@ using Random
         simplex = rand(Int, dim+1)
         @test_throws UndefKeywordError B = SimplicialComplex(simplex)
         B = SimplicialComplex([simplex])
+
+        @test dimension(B) == dim
         for k in 0:dim
             Bk = skeleton(B, k)
             # Until k, has the same simplices
@@ -23,12 +25,38 @@ using Random
                 @test isempty(ss)
             end
         end
+        # Right dimension?
+        simplex = rand(Int, dim)
+        insert!(B, simplex)
+        @test dimension(B) == dim
+        simplex = rand(Int, dim+2)
+        insert!(B, simplex)
+        @test dimension(B) == dim + 1
+
+        # Copying changes the complex
+        G = copy(B)
+        @test B != G
+        # But preserves simplicies
+        @test simplices(G) == simplices(B)
+    end
+    @testset "Acessing Simplicies" begin
+        s = (rand(1:30, rand(1:10)) for i in 1:rand(2:100))
+        K = SimplicialComplex(s)
+        @test length(vertices(K)) == numvertices(K)
+        @test length(simplices(K)) == numsimplices(K)
+        @test vertices(K) == vcat(simplices(K,0)...)
+        @test isempty(simplices(K, -1))
+        for i in -3:dimension(K)+3
+            @test length(simplices(K, i)) == numsimplices(K,i)
+        end
     end
     @testset "Topological Operators" begin
         # Decomposition of sphere S^2
         S = skeleton(SimplicialComplex([(1,2,3,4)]), 2)
         @test euler_characteristic(S) == 2
         @test betti(S) == [1,0,1]
+        @test betti(S, -1) === 0
+        @test betti(S, 3)  === 0
 
         # Decomposition of Torus T^2
         vs = [1 4 5 1; 3 8 9 3; 2 6 7 2; 1 4 5 1]
