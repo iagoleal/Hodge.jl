@@ -1,5 +1,9 @@
 # Hodge.jl
 
+| ** Build Status ** |
+|:------------------:|
+| [![Build Status](https://travis-ci.com/iagoleal/Hodge.jl.svg?branch=master)](https://travis-ci.com/iagoleal/Hodge.jl) |
+
 Library for manipulation of simplicial complexes
 and cochains defined over them.
 
