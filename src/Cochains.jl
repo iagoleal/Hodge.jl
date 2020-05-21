@@ -1,22 +1,12 @@
 import Combinatorics: levicivita, permutations
 import SparseArrays
+import LinearAlgebra
 
 using Base: +, *, -, zero, iszero, ==
 using Base: size, similar, getindex, setindex!
 using Base: float, complex, rationalize
 using Base: show
 import Base.Iterators: take, drop
-
-# Helper function to calculate permutation sign
-signperm = levicivita ∘ sortperm
-
-# Interator yielding the (k-1)-faces of k-simplex
-@inline faces(s) = ((s[j] for j in eachindex(s) if j != i) for i in eachindex(s))
-@inline simplex_dim(l) = length(l) - 1
-
-@inline function assert_basespaces(f,g)
-    @assert(basespace(f) == basespace(g), "The Cochains are defined over different simplicial complexes")
-end
 
 """
     Cochain{R, n}
@@ -145,6 +135,14 @@ function Base.collect(f::Cochain{R,n}) where {R,n}
     return A
 end
 
+"""
+    vectorfy(ω::Cochain)
+
+Return an iterator over the values of a [`Cochain`](@ref)
+viewing it as a vector.
+"""
+@inline vectorfy(f::Cochain) = (f[s...] for s in simplices(basespace(f), degree(f)))
+
 ## Showing Cochains on REPL
 function Base.show(io::IO, f::Cochain)
     show(io, collect(f))
@@ -214,7 +212,7 @@ end
 
 @inline Base.:*(f::Cochain, a) = a * f
 
-Base.iszero(f::Cochain) = all(iszero, values(f.data))
+Base.iszero(f::Cochain) = all(iszero, vectorfy(f))
 
 function Base.:(==)(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
     assert_basespaces(f, g)
@@ -229,12 +227,10 @@ Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 By default, `p=2`.
 """
 function norm(f::Cochain, p::Real=2)
-    if iszero(f)
-        return zero(basering(f))
-    elseif isinf(p)
-        return maximum(values(f.data))
+    if isinf(p)
+        return maximum(vectorfy(f))
     else
-        return sum(t -> abs(t)^p, values(f.data)) ^ inv(p)
+        return sum(t -> abs(t)^p, vectorfy(f)) ^ inv(p)
     end
 end
 
@@ -243,27 +239,31 @@ end
 
 Calculate the square of the usual inner product norm of a [`Cochain`](@ref) `ω`.
 """
-norm2(f::Cochain{R}) where R = iszero(f) ? zero(R) : sum(abs2, values(f.data))
+norm2(f::Cochain{R}) where R = iszero(f) ? zero(R) : sum(abs2, vectorfy(f))
 
 @doc raw"""
     inner(ω, ξ)
 
 Usual inner product between [`Cochain`](@ref)s.
 
+!!! warning
+    For complex Cochains,
+    the conjugation is taken on the __first__ entry.
+
 This inner product sees a n-cochain as a free vector space
 over the (non-oriented) n-simplices of their base space.
 Formally,
 ```math
-    \sum_{\sigma \in \mathrm{simplices}(K,n)} f(σ) g(σ).
+\sum_{\sigma \in \mathrm{simplices}(K,n)} \overline{f(σ)} g(σ).
 ```
 """
-function inner(f::Cochain{R,n}, g::Cochain{R,n}) where {R,n}
+function inner(f::Cochain{R,n}, g::Cochain{R,n}) :: R where {R,n}
     assert_basespaces(f,g)
     mutual_keys = intersect(keys(f.data), keys(g.data))
     if isempty(mutual_keys)
         return zero(R)
     else
-        return sum(g[i...] * f[i...] for i in mutual_keys)
+        return sum(conj(g[i...]) * f[i...] for i in mutual_keys)
     end
 end
 
@@ -406,12 +406,19 @@ end
          ω = dα + δβ + γ.
 =#
 
-##########################################
-# Write cochains / operators as matrices #
-##########################################
+#############################################
+# Helper functions used throughout the code #
+#############################################
 
-function vectorfy(f::Cochain{R, n}) where {R, n}
-    return (f[s...] for s in simplices(basespace(f), n))
+# Helper function to calculate permutation sign
+signperm = levicivita ∘ sortperm
+
+# Interator yielding the (k-1)-faces of k-simplex
+@inline faces(s) = ((s[j] for j in eachindex(s) if j != i) for i in eachindex(s))
+@inline simplex_dim(l) = length(l) - 1
+
+@inline function assert_basespaces(f,g)
+    @assert(basespace(f) == basespace(g), "The Cochains are defined over different simplicial complexes")
 end
 
 function matrixify(L, K::SimplicialComplex, deg_from::Integer, deg_to::Integer=deg_from)
