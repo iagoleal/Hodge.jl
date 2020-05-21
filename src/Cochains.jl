@@ -15,6 +15,10 @@ Represent the `n`-th group ``C^n(K; R)``
 of cochains over the ring `R`
 whose basespace is the simplicial complex ``K``.
 
+For constructing Cochains,
+see also the methods [`zero_cochain`](@ref)
+and [`indicator_cochain`](@ref).
+
 The elements of this type may be seem as
 functions from the n-simplices of `K` to `R`
 or as skew-symmetric n-tensors over the vertices of `K`.
@@ -87,7 +91,6 @@ that `ω` is associated with.
 
 Return the Ring that `ω` is defined over.
 """
-
 @inline basering(::Cochain{R,n}) where {R,n} = R
 """
     degree(ω::Cochain)
@@ -233,6 +236,9 @@ end
 Calculate the p-norm of the [`Cochain`](@ref) `ω`.
 
 By default, `p=2`.
+
+Return a floating point,
+no matter the base ring of `ω`.
 """
 function norm(f::Cochain, p::Real=2)
     if isinf(p)
@@ -324,9 +330,6 @@ end
 The adjoint of the [`coboundary`](@ref)
 with respect to usual inner product.
 """
-#= If the variable inner is omitted, =#
-#= the default is the canonical inner product =#
-#= treating `ω` as a n-th order tensor. =#
 function coboundary_adj(f::Cochain)
     K  = basespace(f)
     δf = Cochain(basering(f), K, degree(f) - 1)
@@ -348,10 +351,6 @@ defined as
 where ``d`` and ``d^*`` are, respectively,
 the [`coboundary`](@ref) and [`coboundary_adj`](@ref) operators.
 """
-#= The parameter `inner` dictates the inner product =#
-#= needed for the laplacian's definition. =#
-#= If it is omitted, the default is the usual dot product =#
-#= treating `ω` as a n-th order tensor. =#
 @inline function laplacian(f::Cochain)
     return coboundary(coboundary_adj(f)) + coboundary_adj(coboundary(f))
 end
@@ -360,7 +359,7 @@ end
     hodge(ω)
 
 Hodge decomposition of a [`Cochain`](@ref)
-using `inner` as the inner product.
+using [`inner`](@ref) as the inner product.
 
 Return a tuple `(α,β,γ)` such that
 ```
@@ -368,10 +367,6 @@ Return a tuple `(α,β,γ)` such that
 laplacian(γ) == 0
 ```
 """
-#= The parameter `inner` dictates the inner product =#
-#= needed for the `coboundary_adj` definition. =#
-#= If it is omitted, the default is the usual dot product =#
-#= treating `ω` as a n-th order tensor. =#
 function hodge(f::Cochain; atol=1e-9)
     maxiters = numsimplices(basespace(f), degree(f))
     λ = atol

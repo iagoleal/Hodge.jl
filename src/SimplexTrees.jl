@@ -41,7 +41,7 @@ isemptyface(x::SimplexTree) = typeof(x) == STRoot
 """
     isleaf(node)
 
-Test whether `node` is a leaf of a [`SimplexTree`](@ref)
+Test whether `node` is a leaf of a [`SimplexTree`](@ref).
 """
 isleaf(x::SimplexTree) = isempty(x.children)
 
@@ -120,7 +120,7 @@ end
 Return the number of `k`-simplices of `st`.
 
 This is a more efficient implementation of
-`length ∘ getsimplices`
+`length ∘ getsimplices`.
 """
 function numsimplices(st::SimplexTree, dim::Integer)
     if dim < 0

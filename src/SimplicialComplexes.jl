@@ -14,7 +14,7 @@ using Base: insert!
 Represent an abstract simplicial complex
 where all vertices are labeled by integers.
 
-Internally, use the [`SimplexTree`](@ref)
+Internally, use the [`SimplexTrees.SimplexTree`](@ref)
 data structure.
 """
 mutable struct SimplicialComplex
@@ -39,7 +39,7 @@ end
 Base.copy(sc::SimplicialComplex) = SimplicialComplex(simplices(sc))
 
 """
-    insert!(sc, σ)
+    insert!(sc::SimplicialComplex, σ)
 
 Insert the simplex `σ` and all its faces
 on the [`SimplicialComplex`](@ref) `sc`.
@@ -59,6 +59,9 @@ end
     skeleton(sc, k)
 
 Return the k-skeleton of a [`SimplicialComplex`](@ref).
+That is,
+a SimplicialComplex with the same simplices as `sc`
+up to dimension `k`.
 """
 function skeleton(sc::SimplicialComplex, k::Integer)
     return SimplicialComplex(Iterators.flatten(simplices(sc,i) for i in 0:k))
