@@ -119,7 +119,35 @@ using Random
         @test rationalize(g) isa Cochain{Rational{Int}}
         @test rationalize(BigInt, g) isa Cochain{Rational{BigInt}}
     end
-    @testset "Hodge Decomposition" begin
+    @testset "Norms and inner products over Q and C" for i in 1:5
+        K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1), (1,2,3,4,5)))
+        dim = rand(0:4)
+        g = Cochain(Rational{BigInt}, K, dim)
+        f = Cochain(Complex{Float64}, K, dim)
+        for s in simplices(K,dim)
+            g[s...] = rand(1:100) // (abs(rand(1:100)) + 1)
+            f[s...] = rand(Complex{Float64})
+        end
+
+        # Rationals
+        @test norm(g)  isa AbstractFloat
+        @test norm2(g) isa Rational
+        @test inner(g, g) isa Rational
+        @test_throws MethodError inner(g, rationalize(g))
+
+        # Complexes
+        # Different return types
+        @test norm(f)  isa AbstractFloat
+        @test norm2(f) isa Float64
+        @test inner(f, f) isa Complex
+
+        # Now time for Complex over Rationals
+        h = complex(g)
+        @test norm(h)  isa AbstractFloat
+        @test norm2(h) isa Rational
+        @test inner(h, h) isa Complex
+    end
+    @testset "Hodge Decomposition" for i in 1:5
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1)))
         f = Cochain(Float64, K, 1)
         for s in simplices(K,1)
