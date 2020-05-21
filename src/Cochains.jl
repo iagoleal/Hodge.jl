@@ -61,6 +61,14 @@ function indicator_cochain(::Type{R}, K::SimplicialComplex, simplex) where {R}
     return f
 end
 
+"""
+    zero_cochain(R, K, n)
+
+Construct an identically zero `n`-cochain over `R`
+and whose base space is `K`.
+"""
+@inline zero_cochain(::Type{R}, K::SimplicialComplex, n) where {R} = Cochain(R,K,n)
+
 
 ######################
 # Accessor functions #

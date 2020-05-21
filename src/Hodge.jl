@@ -19,10 +19,6 @@ export dimension,
        skeleton,
        euler_characteristic,
        betti
-       # remove!,
-       # flag,
-       # expansion,
-       # cofaces
 
 # Cochain algebra over a simplicial complex
 include("Cochains.jl")
@@ -31,6 +27,7 @@ export Cochain
 export basespace,
        basering,
        degree,
+       zero_cochain,
        indicator_cochain,
        norm,
        norm2,
