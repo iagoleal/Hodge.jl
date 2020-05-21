@@ -1,8 +1,8 @@
 # Hodge.jl
 
-| **Build Status** | **Code Coverage** |
-|:----------------:|:-----------------:|
-| [![Build Status][build-img]][build-url] | [![Code Coverage][codecov-img]][codecov-url] |
+| **Documentation** | **Build Status** | **Code Coverage** |
+|:-----------------:|:----------------:|:-----------------:|
+| [![Latest Docs][docs-dev-img]][docs-dev-url] | [![Build Status][build-img]][build-url] | [![Code Coverage][codecov-img]][codecov-url] |
 
 Library for manipulation of simplicial complexes
 and cochains defined over them.
@@ -17,6 +17,9 @@ To install this package, enter `[` on the Julia REPL and write
 ```julia
 pkg> add https://github.com/iagoleal/Hodge.jl.git
 ```
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://iagoleal.github.io/Hodge.jl/dev/
 
 [build-img]: https://travis-ci.org/iagoleal/Hodge.jl.svg?branch=master
 [build-url]: https://travis-ci.org/iagoleal/Hodge.jl
