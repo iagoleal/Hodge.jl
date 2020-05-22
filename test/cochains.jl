@@ -6,7 +6,7 @@ using Random
     @testset "Assignment and basic unary ops" begin
         K = SimplicialComplex([[2,4,5], [1,2,3,4]])
 
-        f = Cochain(Int, K, 1)
+        f = zero_cochain(Int, K, 1)
         # Test basic acessor functions
         @test basering(f) === Int
         @test degree(f) === 1
@@ -55,13 +55,13 @@ using Random
     end
     @testset "Cochains interacting" begin
         K = SimplicialComplex([[2,4,5], [1,2,3,4]])
-        f = Cochain(Int, K, 2)
+        f = zero_cochain(Int, K, 2)
         f[1,2,3] = 10
         f[3,1,4] = 5
         f[2,4,5] = 9
 
         # All binary operation must fail for different basespaces
-        g1 = Cochain(Int, SimplicialComplex(), 2)
+        g1 = zero_cochain(Int, SimplicialComplex(), 2)
         @test basespace(f) != basespace(g1)
         @test_throws AssertionError f + g1
         @test_throws AssertionError f - g1
@@ -103,7 +103,7 @@ using Random
     @testset "Type conversions" begin
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1), (1,2,3,4,5)))
         dim = rand(0:4)
-        f = Cochain(Int, K, dim)
+        f = zero_cochain(Int, K, dim)
         for s in simplices(K,dim)
             f[s...] = rand(Int)
         end
@@ -112,7 +112,7 @@ using Random
         @test complex(float(f)) isa Cochain{Complex{Float64}}
 
         dim = rand(0:4)
-        g = Cochain(Float64, K, dim)
+        g = zero_cochain(Float64, K, dim)
         for s in simplices(K,dim)
             g[s...] = rand(Float64)
         end
@@ -122,8 +122,8 @@ using Random
     @testset "Norms and inner products over Q and C" for i in 1:5
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1), (1,2,3,4,5)))
         dim = rand(0:4)
-        g = Cochain(Rational{BigInt}, K, dim)
-        f = Cochain(Complex{Float64}, K, dim)
+        g = zero_cochain(Rational{BigInt}, K, dim)
+        f = zero_cochain(Complex{Float64}, K, dim)
         for s in simplices(K,dim)
             g[s...] = rand(1:100) // (abs(rand(1:100)) + 1)
             f[s...] = rand(Complex{Float64})
@@ -159,7 +159,7 @@ using Random
     end
     @testset "Hodge Decomposition" for i in 1:5
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1)))
-        f = Cochain(Float64, K, 1)
+        f = zero_cochain(Float64, K, 1)
         for s in simplices(K,1)
             f[s...] = rand()
         end
@@ -178,7 +178,7 @@ using Random
         H = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1)))
 
         # Define a known harmonic form
-        h = Cochain(Float64, H, 1)
+        h = zero_cochain(Float64, H, 1)
         h[1,2] =  1
         h[1,3] =  2
         h[1,5] = -2

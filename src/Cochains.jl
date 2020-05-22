@@ -28,19 +28,37 @@ This second perspective follows the ideas from the paper:
 struct Cochain{R<:Number, n}
     basespace :: SimplicialComplex
     data      :: Dict{Tuple{Vararg{Int}}, R}
+    function Cochain{R, n}(K::SimplicialComplex) where {R,n}
+        return new(K, Dict{Tuple{Vararg{Int}}, R}())
+    end
 end
 
-## Constructing Cochains
-
-# Zero cochain over K
 """
-    Cochain(R, K, n)
+    Cochain{R, n}(K::SimplicialComplex, itr)
 
-Construct an identically zero n-cochain over `R`
+Construct a Cochain whose basespace is `K`
+and whose values are filled according to `pairs(itr)`.
+
+#Example
+```jldocstring
+```
+"""
+function Cochain{R, n}(K::SimplicialComplex, itr) where {R,n}
+    f = Cochain{R,n}(K)
+    for (k,v) in pairs(itr)
+        f[k...] = v
+    end
+    return f
+end
+
+"""
+    zero_cochain(R, K, n)
+
+Construct an identically zero `n`-cochain over `R`
 and whose base space is `K`.
 """
-@inline function Cochain(::Type{R}, K::SimplicialComplex, n::Int) where {R}
-    return Cochain{R, n}(K, Dict{Tuple{Vararg{Int}}, R}())
+@inline function zero_cochain(::Type{R}, K::SimplicialComplex, n::Int) where {R}
+    return Cochain{R, n}(K)
 end
 
 # Basis cochains
@@ -58,20 +76,10 @@ If `Κ` does not contain `σ`,
 the returned cochain is identically zero.
 """
 function indicator_cochain(::Type{R}, K::SimplicialComplex, simplex) where {R}
-    f = Cochain(R, K, simplex_dim(simplex))
-    if hassimplex(K, simplex)
-        f[simplex...] = one(R)
-    end
+    f = zero_cochain(R, K, simplex_dim(simplex))
+    f[simplex...] = one(R)
     return f
 end
-
-"""
-    zero_cochain(R, K, n)
-
-Construct an identically zero `n`-cochain over `R`
-and whose base space is `K`.
-"""
-@inline zero_cochain(::Type{R}, K::SimplicialComplex, n) where {R} = Cochain(R,K,n)
 
 
 ######################
@@ -108,7 +116,7 @@ function Base.size(f::Cochain)
 end
 
 function Base.similar(f::Cochain, ::Type{T}, m::Int) where {T}
-    return Cochain(T, basespace(f), m)
+    return Cochain{T, m}(basespace(f))
 end
 
 function Base.getindex(f::Cochain{R, n}, I::Vararg{Int}) where {R,n}
@@ -203,8 +211,8 @@ end
     return f + (-g)
 end
 
-@inline function Base.zero(f::Cochain{R,n}) where {R,n}
-    Cochain(R, basespace(f), n)
+@inline function Base.zero(f::Cochain)
+    return zero_cochain(basering(f), basespace(f), degree(f))
 end
 
 @inline function Base.:*(a::R, f::Cochain{R,n}) where {R<:Number,n}
@@ -294,7 +302,7 @@ of two [`Cochain`](@ref)s.
 """
 function cup(f::Cochain{R,n}, g::Cochain{R,m}) where {R,n,m}
     assert_basespaces(f, g)
-    h = Cochain(R, basespace(f), n + m)
+    h = zero_cochain(R, basespace(f), n + m)
     for s in simplices(basespace(f), n + m)
         h[s...] = f[take(s,n+1)...] * g[drop(s,n)...]
     end
@@ -311,7 +319,7 @@ The coboundary of ``ω`` applied to a simplex ``σ``
 equals the alternating sum of ``ω`` applied to the faces of ``σ``.
 """
 function coboundary(f::Cochain)
-    df = Cochain(basering(f), basespace(f), degree(f) + 1)
+    df = zero_cochain(basering(f), basespace(f), degree(f) + 1)
     for s in simplices(basespace(f), degree(f) + 1)
         sg = 1
         for t in faces(s)
@@ -332,7 +340,7 @@ with respect to usual inner product.
 """
 function coboundary_adj(f::Cochain)
     K  = basespace(f)
-    δf = Cochain(basering(f), K, degree(f) - 1)
+    δf = zero_cochain(basering(f), K, degree(f) - 1)
     for s in simplices(K, degree(f) - 1)
         e_s = indicator_cochain(basering(f), K, s)
         δf[s...] = inner(f, coboundary(e_s))
