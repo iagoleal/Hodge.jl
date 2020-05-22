@@ -38,4 +38,10 @@ export basespace,
        laplacian,
        hodge
 
+# Define some (unexported) single-character synonyms
+const d = coboundary
+const δ = coboundary_adj
+const Δ = laplacian
+const χ = euler_characteristic
+
 end # module
