@@ -177,15 +177,21 @@ using Random
         h[3,4] =  3
         h[4,5] =  3
         h[5,6] =  1
-        # Test if d, δ, and Δ of it are properly returning zero
-        @test iszero(coboundary(h))
-        @test iszero(coboundary_adj(h))
-        @test iszero(laplacian(h))
+        h1 = rationalize(BigInt, h)
+        h2 = complexify(h)
 
-        # Test if the hodge decomposition works
-        a, b, c = hodge(h)
-        @test norm(a, Inf)   ≈ 0 atol=1e-6
-        @test norm(b, Inf)   ≈ 0 atol=1e-6
-        @test norm(h-c, Inf) ≈ 0 atol=1e-6
+        # Test over R, Q, C
+        for f in (h, h1, h2)
+            # Test if d, δ, and Δ of it are properly returning zero
+            @test iszero(coboundary(f))
+            @test iszero(coboundary_adj(f))
+            @test iszero(laplacian(f))
+
+            # Test if the hodge decomposition works
+            a, b, c = hodge(f)
+            @test norm(a, Inf)   ≈ 0 atol=1e-6
+            @test norm(b, Inf)   ≈ 0 atol=1e-6
+            @test norm(f-c, Inf) ≈ 0 atol=1e-6
+        end
     end
 end
