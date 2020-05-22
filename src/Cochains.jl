@@ -240,9 +240,9 @@ By default, `p=2`.
 Return a floating point,
 no matter the base ring of `ω`.
 """
-function norm(f::Cochain, p::Real=2)
+function norm(f::Cochain, p::Real=2) :: Float64
     if isinf(p)
-        return maximum(vectorfy(f))
+        return maximum(abs, vectorfy(f))
     else
         return sum(t -> abs(t)^p, vectorfy(f)) ^ inv(p)
     end
@@ -253,7 +253,7 @@ end
 
 Calculate the square of the usual inner product norm of a [`Cochain`](@ref) `ω`.
 """
-norm2(f::Cochain{R}) where R = iszero(f) ? zero(R) : sum(abs2, vectorfy(f))
+norm2(f::Cochain) = sum(abs2, vectorfy(f))
 
 @doc raw"""
     inner(ω, ξ)

@@ -131,6 +131,7 @@ using Random
 
         # Rationals
         @test norm(g)  isa AbstractFloat
+        @test norm(g, Inf)  isa AbstractFloat
         @test norm2(g) isa Rational
         @test inner(g, g) isa Rational
         @test_throws MethodError inner(g, rationalize(g))
@@ -138,14 +139,23 @@ using Random
         # Complexes
         # Different return types
         @test norm(f)  isa AbstractFloat
+        @test norm(f, Inf)  isa AbstractFloat
         @test norm2(f) isa Float64
         @test inner(f, f) isa Complex
 
         # Now time for Complex over Rationals
         h = complex(g)
         @test norm(h)  isa AbstractFloat
+        @test norm(h, Inf)  isa AbstractFloat
         @test norm2(h) isa Rational
         @test inner(h, h) isa Complex
+
+        for w in [g,f,h]
+            @inferred norm(w)
+            @inferred norm(w, Inf)
+            @inferred norm2(w)
+            @inferred inner(w, w)
+        end
     end
     @testset "Hodge Decomposition" for i in 1:5
         K = SimplicialComplex(((1,2,3), (3,4), (4,5), (5,6,1)))
