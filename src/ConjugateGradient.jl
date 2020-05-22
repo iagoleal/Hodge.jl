@@ -46,7 +46,7 @@ function conjugate_gradient(A, b, inner; maxiters=nothing,
         x     = x + alpha * p
         r     = r - alpha * Ap
         norm_r_new = inner(r,r)
-        sqrt(norm_r_new) < atol && break
+        abs(sqrt(norm_r_new)) < atol && break
 
         beta  = norm_r_new / norm_r_prev
         p     = r + beta * p
