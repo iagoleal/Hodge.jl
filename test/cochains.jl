@@ -178,7 +178,7 @@ using Random
         h[4,5] =  3
         h[5,6] =  1
         h1 = rationalize(BigInt, h)
-        h2 = complexify(h)
+        h2 = complex(h)
 
         # Test over R, Q, C
         for f in (h, h1, h2)
