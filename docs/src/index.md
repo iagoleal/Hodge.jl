@@ -15,13 +15,13 @@ which calculates the discrete Hodge decomposition of a cochain.
 This package can be installed using the Julia Package Manager. Simply open the REPL, enter `]` and run
 
 ```julia
-pkg> add https://github.com/iagoleal/Hodge.jl.git
+pkg> add Hodge
 ```
 
 ## Bibliography
 
 `Hodge.jl` is based on a scientific initiation
-that I did with Prof. João Paixão
+that I did with [Prof. João Paixão](https://joaopaixao.com)
 while an undergraduate at UFRJ.
 
 The simplicial complex type is built upon

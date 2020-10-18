@@ -13,9 +13,9 @@ and its applications to statistical rankings
 and extraction of topological features from simplicial triangulations.
 
 ## Installation
-To install this package, enter `]` on the Julia REPL and write
+To install this package, all you have to do is to enter `]` on the Julia REPL and write
 ```julia
-pkg> add https://github.com/iagoleal/Hodge.jl.git
+pkg> add Hodge
 ```
 
 ## Basic Usage
