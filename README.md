@@ -2,7 +2,7 @@
 
 | **Documentation** | **Build Status** | **Code Coverage** |
 |:-----------------:|:----------------:|:-----------------:|
-| [![Latest Docs][docs-dev-img]][docs-dev-url] | [![Build Status][build-img]][build-url] | [![Code Coverage][codecov-img]][codecov-url] |
+| [![Stable Docs][docs-stable-img]][docs-stable-url] [![Latest Docs][docs-dev-img]][docs-dev-url] | [![Build Status][build-img]][build-url] | [![Code Coverage][codecov-img]][codecov-url] |
 
 Library for manipulation of simplicial complexes
 and cochains defined over them.
@@ -50,8 +50,10 @@ c = cup(f, h)
 a, b, c = hodge(f)
 ```
 
-See the [documentation][docs-dev-url] for a more comprehensive explanation.
+See the [documentation][docs-stable-url] for a more comprehensive explanation.
 
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://iagoleal.github.io/Hodge.jl/stable/
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://iagoleal.github.io/Hodge.jl/dev/
