@@ -1,8 +1,8 @@
 # Hodge.jl
 
-| **Documentation** | **Build Status** | **Code Coverage** |
-|:-----------------:|:----------------:|:-----------------:|
-| [![Stable Docs][docs-stable-img]][docs-stable-url] [![Latest Docs][docs-dev-img]][docs-dev-url] | [![Build Status][build-img]][build-url] | [![Code Coverage][codecov-img]][codecov-url] |
+| **Documentation** | **Build Status** |
+|:-----------------:|:----------------:|
+| [![Stable Docs][docs-stable-img]][docs-stable-url] [![Latest Docs][docs-dev-img]][docs-dev-url] | [![Build Status][build-img]][build-url]  [![Code Coverage][codecov-img]][codecov-url] |
 
 Library for manipulation of simplicial complexes
 and cochains defined over them.
@@ -58,8 +58,8 @@ See the [documentation][docs-stable-url] for a more comprehensive explanation.
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://iagoleal.github.io/Hodge.jl/dev/
 
-[build-img]: https://travis-ci.org/iagoleal/Hodge.jl.svg?branch=master
-[build-url]: https://travis-ci.org/iagoleal/Hodge.jl
+[build-img]: https://github.com/iagoleal/Hodge.jl/actions/workflows/ci.yml/badge.svg?branch=master
+[build-url]: https://github.com/iagoleal/Hodge.jl/actions/workflows/ci.yml
 
 [codecov-img]: https://codecov.io/github/iagoleal/Hodge.jl/coverage.svg?branch=master
 [codecov-url]: https://codecov.io/github/iagoleal/Hodge.jl?branch=master
