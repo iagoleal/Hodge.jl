@@ -432,10 +432,10 @@ signperm = levicivita ∘ sortperm
     @assert(basespace(f) == basespace(g), "The Cochains are defined over different simplicial complexes")
 end
 
-function matrixify(L, K::SimplicialComplex, deg_from::Integer, deg_to::Integer=deg_from)
+function matrixify(L, K::SimplicialComplex, deg_from::Integer, deg_to::Integer=deg_from; sparse::Bool=true)
     n = numsimplices(K, deg_from)
     m = numsimplices(K, deg_to)
-    A = SparseArrays.spzeros(n, m)
+    A = sparse ? SparseArrays.spzeros(n, m) : zeros(n,m)
     for (i, s) in enumerate(simplices(K, deg_from))
         Ae_s = (vectorfy ∘ L ∘ indicator_cochain)(Float64, K, s)
         for (j,v) in enumerate(Ae_s)

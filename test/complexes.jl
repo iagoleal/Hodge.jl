@@ -69,7 +69,7 @@ using Random
         @test euler_characteristic(T) == 0
         @test betti(T) == [1,2,1]
 
-        # Disjoint sum of two spheres S^2 ̧∐ S^2
+        # Disjoint sum of two spheres S^2 ∐ S^2
         SS = SimplicialComplex([[2,3,4],
                                 [1,3,4],
                                 [1,2,4],
