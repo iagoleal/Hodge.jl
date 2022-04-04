@@ -1,5 +1,16 @@
 # Hodge.jl
 
+One of the most powerful tools available to study the algebraic topology of manifolds is the Hodge decomposition.
+Recently, a discrete analogous of it has been successfully applied for better understanding
+how one may transform a pairwise ranking that is cyclically inconsistent into some kind of global ordering.
+
+The Julia package `Hodge.jl` is a library
+implementing the necessary tools of computational algebraic topology
+to easily utilize the Hodge decomposition.
+The available structures are representations for simplicial complexes
+and the algebra of cochains (discrete analogues of differential forms)
+as well as methods for calculating Betti numbers and the Hodge decomposition.
+
 This package exports two main types,
 [`SimplicialComplex`](@ref) and [`Cochain`](@ref),
 together with methods to work with their topological and algebraic properties.
@@ -12,7 +23,7 @@ and the method [`hodge`](@ref)
 which calculates the discrete Hodge decomposition of a cochain.
 
 ## Installation
-This package can be installed using the Julia Package Manager. Simply open the REPL, enter `]` and run
+You can install this package via the Julia Package Manager. Simply open the REPL, enter `]` and run
 
 ```julia
 pkg> add Hodge
