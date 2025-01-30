@@ -7,6 +7,7 @@ DocMeta.setdocmeta!(Hodge, :DocTestSetup, :(using Hodge); recursive=true)
 makedocs(
     sitename = "Hodge.jl",
     authors  = "Iago Leal de Freitas",
+    checkdocs = :exports,
     format = Documenter.HTML(
         prettyurls = !("local" in ARGS),
         canonical  = "https://iagoleal.github.io/Hodge.jl/dev/",
